@@ -101,8 +101,8 @@ def display_images(batch):
     the associated bounding boxes.
     """
     rgb_mapping = { 1: 'red',   # Vehicles
-                    2: 'green', # Cyclists
-                    4: 'blue'   # Pedestrians
+                    2: 'blue',  # Pedestrians
+                    4: 'green'  # Cyclists
                   }
 
     col, row = 5, 2
@@ -141,6 +141,8 @@ rand_dataset = dataset.shuffle(1000)
 display_images(dataset.take(10))
 ```
 
+![10 Images with bounding boxes](images/ten_bb_images.PNG "Ten Shuffled Images with Bounding Boxes")
+
 ### EDA Analysis
 
 My initial impression of the resulting images and bounding boxes from the previous section is that the current model:
@@ -148,58 +150,41 @@ My initial impression of the resulting images and bounding boxes from the previo
   - Might struggle with smaller objects (like pedestrians and cyclists)
   - Some of the bounding boxes seem slightly off when the weather isn't perfect conditions (blurry images from rain, not perfect lighting, etc.)
 
-To better understand the dataset, I created a get_occurence_metrics function to create a bar plot of the classification break down across the enter train folder.
+To better understand the dataset, I created a get_occurence_metrics function to create a pie chart of the classification break down across the entire train folder.
 
 ```python
 def get_occurence_metrics(batch_data):
     """
-    This function takes the batch_data from the dataset and creates a distribution
-    bar plot based on the image classifcation.
+    Creates a pie chart based on the class distribution
+    of the provided batch data
     """
-    num_occurences = { 1: 0, # Vehicles
-                       2: 0, # Cyclists
-                       4: 0  # Pedestrians
-                     }
-    class_labels = [("r", "Vehicles"), ("g", "Cyclists"), ("b", "Pedestrians")]
-    total_records_num_occurrences = list()
-    # For each tfrecord, calculate the total number of occurences
-    for i, batch in enumerate(batch_data):
+    num_occur = { 1: 0, # Vehicles
+                  2: 0, # Pedestrians
+                  4: 0  # Cylists
+                 }
+    class_labels = ["Vehicles", "Pedestrians", "Cyclists"]
+    colors_ref = ['r', 'b', 'g']
+    # For each tfrecord, calculate the total number of occurrences
+    for batch in batch_data:
         classes = batch['groundtruth_classes'].numpy()
-        # Total up the number of occurences per class
-        for cl in classes:
-            num_occurences[cl] += 1
-        # Save off the record's occurences
-        total_records_num_occurrences.append(num_occurences.copy())
-        # Reset the number of occurences
-        for i in num_occurences:
-            num_occurences[i] = 0
-    
-    # Prep the subplots
-    _, ax = plt.subplots()
-    num_classes = len(num_occurences)
-    bar_width = 0.7
-    # For every record, add a bar for each classification indicating the total number
-    # of occurrences in an image 
-    for i, occurrence in enumerate(total_records_num_occurrences):
-        for j, n in enumerate(occurrence):
-            ax.bar(i + j, occurrence[n], bar_width, color=class_labels[j][0], align="edge")
+        unique, counts = np.unique(classes, return_counts=True)
+        
+        for u, c in zip(unique, counts):
+            num_occur[u] += c
 
-    # Create the plot labels
-    ax.set_title("Occurences per Classification Type")
-    ax.set_ylabel("Number of Occurences")
-    ax.set_xlabel("Record file number")
-    # Create a pretty legend
-    handles = [plt.Rectangle((0 , 0), 1, 1, color=l[0]) for l in class_labels]
-    ax.legend(handles, [label[1] for label in class_labels])
-    plt.tight_layout()
-    # Display the results in a bar plot
+    # Create a pie chart of the class occurrences
+    _, ax = plt.subplots()
+    ax.pie(list(num_occur.values()), labels=class_labels, colors=colors_ref, autopct='%1.1f%%', shadow=True)
+
     plt.show()
 
-# Draw the occurence metrics bar plot
+# Draw the occurence metrics pie chart
 get_occurence_metrics(dataset.take(86))
 ```
 
-The resulting bar graph seemed to show that there is a largely, unequal amount of vehicle detections. With this new information, this also leads me to believe that the current model has a harder time with smaller objects.
+![Occurrences Pie Chart](images/occurrences_pie_graph.PNG "Class Occurences")
+
+The resulting pie chart shows there is a largely, unequal amount of vehicle detections. With this new information, this also leads me to believe that the current model has a harder time with smaller objects.
 
 Additionally, after reviewing the sample images for the EDA section from the Udacity website, I also saw a case where a person's face is incorrectly tagged as a cyclist (there's a pedestrian bound box around the object and looks only like a pedestrian to me). So, my initial hypothesis seem to match the additonal evalutation.
 
