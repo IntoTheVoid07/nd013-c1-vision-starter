@@ -150,10 +150,10 @@ My initial impression of the resulting images and bounding boxes from the previo
   - Might struggle with smaller objects (like pedestrians and cyclists)
   - Some of the bounding boxes seem slightly off when the weather isn't perfect conditions (blurry images from rain, not perfect lighting, etc.)
 
-To better understand the dataset, I created a get_occurence_metrics function to create a pie chart of the classification break down across the entire train folder.
+To better understand the dataset, I created a get_occurrence_metrics function to create a pie chart of the classification break down across the entire train folder.
 
 ```python
-def get_occurence_metrics(batch_data):
+def get_occurrence_metrics(batch_data):
     """
     Creates a pie chart based on the class distribution
     of the provided batch data
@@ -178,11 +178,11 @@ def get_occurence_metrics(batch_data):
 
     plt.show()
 
-# Draw the occurence metrics pie chart
-get_occurence_metrics(dataset.take(86))
+# Draw the occurrence metrics pie chart
+get_occurrence_metrics(dataset.take(86))
 ```
 
-![Occurrences Pie Chart](images/occurrences_pie_graph.PNG "Class Occurences")
+![Occurrences Pie Chart](images/occurrences_pie_graph.PNG "Class occurrences")
 
 The resulting pie chart shows there is a largely, unequal amount of vehicle detections. With this new information, this also leads me to believe that the current model has a harder time with smaller objects.
 
