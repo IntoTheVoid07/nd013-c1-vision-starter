@@ -62,7 +62,7 @@ experiments/
     - exporter_main_v2.py - to create an inference model
     - model_main_tf2.py - to launch training
     - reference/ - reference training with the unchanged config file
-    - experiment0/ - create a new folder for each experiment you run
+    - experiment0/ - Contains the pipeline for the reference run
     - experiment1/ - create a new folder for each experiment you run
     - experiment2/ - create a new folder for each experiment you run
     - label_map.pbtxt
@@ -70,7 +70,7 @@ experiments/
 ```
 [NOTE] - Since some of the generated output files (i.e. the checkpoints, eval and train tf events, etc.) are quite large, they won't be committed to this repo.
 
-### Exploratory Data Analysis (EDA)
+## Exploratory Data Analysis (EDA)
 
 In order to better understand the provided data, a display_images function was implemented to help display 10 shuffled images with their correctly classified colored bounding boxes. The provided classifications and color mapping was:
 
@@ -203,14 +203,39 @@ The resulting bar graph seemed to show that there is a largely, unequal amount o
 
 Additionally, after reviewing the sample images for the EDA section from the Udacity website, I also saw a case where a person's face is incorrectly tagged as a cyclist (there's a pedestrian bound box around the object and looks only like a pedestrian to me). So, my initial hypothesis seem to match the additonal evalutation.
 
-### Model Training and Evaluation
+## Model Training and Evaluation
+
+The first portion of this section contained instructions on a reference experimentation. This was done by creating a training process:
+
+```bash
+python experiments/model_main_tf2.py --model_dir=experiments/reference --pipeline_config_path=experiments/reference/pipeline_new.config
+```
+
+To visualize the training, I launched a tensorboard instance by running:
+
+```bash
+python -m tensorboard.main --logdir experiments/reference
+```
+
+After the training was finished the following images were captured:
+
+![Reference Loss Image](images/experiment0_ref_training_model.PNG "Reference Loss")
+
+![Learning rate and steps per second Image](images/exeriment0_ref_training_model_2.PNG "Learning rate and steps per second")
+
+Following this, an evaluation process was launched:
+
+```bash
+python experiments/model_main_tf2.py --model_dir=experiments/reference --pipeline_config_path=experiments/reference/pipeline_new.config --checkpoint_dir=experiments/reference
+```
+
+This generated the following evaluations:
+@todo: Need to re-do this image
+
+## Improving on Performances
 
 TODO: Will fill this out later
 
-### Improving on Performances
-
-TODO: Will fill this out later
-
-### Creating an Animation of the Trained Model
+## Creating an Animation of the Trained Model
 
 TODO: Will fill this out later
