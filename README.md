@@ -212,7 +212,7 @@ After the training was finished the following images were captured:
 
 ![Experiment 0 Reference Loss Image](images/experiment0_ref_training_model.PNG "Experiment 0 Reference Loss")
 
-![Experiment 0 Learning rate and steps per second Image](images/exeriment0_ref_training_model_2.PNG "Experiment 0 Learning rate and steps per second")
+![Experiment 0 Learning rate and steps per second Image](images/exp0_ref_training_model_2 "Experiment 0 Learning rate and steps per second")
 
 As seen from the images above, the loss function indicates, from all the non-smooth lines and the early plateauing learning rate, that the model could firstly benefit from learning annealing.
 
@@ -228,7 +228,7 @@ This generated the following evaluations:
 
 ![Reference Detection Boxes Precision Image](images/reference_detection_boxes_precision.PNG "Reference Detection Boxes Precision")
 
-![Reference Detection Boxes Recall Image](images/reference_detectionboxes_recall.PNG "Reference Detection Boxes Precision")
+![Reference Detection Boxes Recall Image](images/reference_detectionboxes_recall.PNG "Reference Detection Boxes Recall")
 
 I realized after doing Experiment 1 that you also need to edit the checkpoint file first to do ckpt-1 and increment sequentially or the charts come out wrong.
 
@@ -244,7 +244,7 @@ As found from the first run, the model's pipeline could benefit from learning an
 
 The changes are as follows:
 
-```json
+```
 optimizer {
     adam_optimizer: {
       epsilon: 1e-7
@@ -269,10 +269,63 @@ By adjusting this, it made a large difference in the loss and learning rate:
 
 ![Experiment 1 Step Time and Loss](images/exp1_optimizer_step_time_and_loss.PNG "Experiment 1 Step Time and Loss Metrics")
 
+I lost the reference detection precision and recall evaluations in between this experiment and the next. However, the results were better than the reference as well.
+
+![Experiment 1 Detection Boxes Precision Image](images/exp1_optimizer_detection_precision.PNG "Reference Detection Boxes Precision")
+
+![Experiment 1 Detection Boxes Recall Image](images/exp1_optimizer_detection_recall.PNG "Reference Detection Boxes Recall")
+
 ### Experiment 2 (Adding Randomness)
 
-TODO: Will fill this out later
+The SSD paper also indicates that, like many other Machine Learning algorithms, it can have a hard time detecting smaller objects (pg 8, 12). Potentially, this could be the reason why there's a disproportionate amount of vehicle detections to small objects like cyclists and pedestrians. However, our dataset might just be lacking images that have many of these objects.
 
-## Creating an Animation of the Trained Model
+As suggested in the instructions, I attempted to adjust the data augmentation, albumentation, strategy to attempt to help diversify the training set to help with overgeneralization by the model. By default, Tensorflow provides a few different strategies which can be found [here](https://github.com/tensorflow/models/blob/master/research/object_detection/protos/preprocessor.proto). In the SSD paper, the authors found that random cropping and changing the fixed aspect ratio greatly improves the results (pg 4-6, 10). The original pipeline already had some random cropping and flipping --- which I left.
 
-TODO: Will fill this out later
+I also noticed from the EDA section that the model seemed to be performing worse when conditions weren't as optimial. So, for this experiment, I also added in random adjusting brightness and saturation.
+
+Therefore, I adjusted the pipeline to:
+
+```
+  data_augmentation_options {
+    random_adjust_brightness {
+    }
+  }
+  data_augmentation_options {
+    random_adjust_saturation {
+    }
+  }
+  data_augmentation_options {
+    random_square_crop_by_scale {
+      scale_min: 0.7
+      scale_max: 1.4
+    }
+  }
+```
+
+Unfortunately, my hypothesis for this experiment didn't match the results I was expecting:
+
+![Experiment 2 Loss Image](images/exp2_randomness_loss.PNG "Experiment 2 Loss")
+
+![Experiment 2 Step Time and Loss](images/exp2_randomness_step_time_and_loss.PNG "Experiment 2 Step Time and Loss Metrics")
+
+Also, upon reaching step 2500, my workspace ran out of room. So, the six checkpoint was corrupted. However, even without it, the loss function was much worse indicating that I over randomized the pipeline. It does still outperform the reference experiment though.
+
+Additionally, The learning rate and the improving loss towards the end did indicate that this step might also benefit from additional stepping. Interestingly enough, the steps per second seemed to be marginally better. With more time, I would probably re-test the first experiment to see if that metric stayed where it was at.
+
+![Experiment 2 Learning rate and steps per second Image](images/exp2_randomness_learning_rate_and_sps.PNG "Experiment 2 Learning rate and steps per second")
+
+The detection precision and recall graphs also indicate that this setup didn't improve on Experiment 1.
+
+![Experiment 2 Detection Boxes Precision Image](images/exp2_randomness_detection_precesion.PNG "Experiment 2 Detection Boxes Precision")
+
+![Experiment 2 Detection Boxes Recall Image](images/exp2_randomness_detection_recall.PNG "Experiment 2 Detection Boxes Recall")
+
+## Summary
+
+Although the second experiment didn't result in better results, the data seem to indicate that both experiment one and two out perform the reference. 
+
+![Summary learning rate and steps per second](images/summary_learning_rate_sps.PNG "Summary learning rate and steps per second")
+
+![Summary loss](images/exp2_randomness_detection_recall.PNG "Summary loss")
+
+With more time, I would try to fine tune the first experiment some more by reducing some of the randomness that I added in from experiment 2. Additionally, I would attempt to experiment with a different algorithm like Faster-RCNN to see how it pairs up to the SSD with this dataset.
