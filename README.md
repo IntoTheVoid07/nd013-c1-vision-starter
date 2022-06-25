@@ -63,7 +63,7 @@ experiments/
     - model_main_tf2.py - to launch training
     - reference/ - reference training with the unchanged config file
     - experiment0/ - Contains the pipeline for the reference run
-    - experiment1/ - create a new folder for each experiment you run
+    - experiment1/ - Contains the pipeline for adjusting the optimizer run
     - experiment2/ - create a new folder for each experiment you run
     - label_map.pbtxt
     ...
@@ -184,11 +184,17 @@ get_occurrence_metrics(dataset.take(86))
 
 ![Occurrences Pie Chart](images/occurrences_pie_graph.PNG "Class occurrences")
 
-The resulting pie chart shows there is a largely, unequal amount of vehicle detections. With this new information, this also leads me to believe that the current model has a harder time with smaller objects.
+The resulting pie chart shows there is a largely, unequal amount of vehicle detections. With this new information, this also leads me to believe that the current model has a harder time with smaller objects and potentially over generalizing.
 
 Additionally, after reviewing the sample images for the EDA section from the Udacity website, I also saw a case where a person's face is incorrectly tagged as a cyclist (there's a pedestrian bound box around the object and looks only like a pedestrian to me). So, my initial hypothesis seem to match the additonal evalutation.
 
 ## Model Training and Evaluation
+
+### Tensorflow Pipeline Config
+
+The provided reference pipeline config used a Single Shot Detector (SSD) Resnet 50 640x640 model. The SSD paper can also be found [here](https://arxiv.org/pdf/1512.02325.pdf).
+
+### Experiment 0 (Reference run)
 
 The first portion of this section contained instructions on a reference experimentation. This was done by creating a training process:
 
@@ -204,9 +210,11 @@ python -m tensorboard.main --logdir experiments/reference
 
 After the training was finished the following images were captured:
 
-![Reference Loss Image](images/experiment0_ref_training_model.PNG "Reference Loss")
+![Experiment 0 Reference Loss Image](images/experiment0_ref_training_model.PNG "Experiment 0 Reference Loss")
 
-![Learning rate and steps per second Image](images/exeriment0_ref_training_model_2.PNG "Learning rate and steps per second")
+![Experiment 0 Learning rate and steps per second Image](images/exeriment0_ref_training_model_2.PNG "Experiment 0 Learning rate and steps per second")
+
+As seen from the images above, the loss function indicates, from all the non-smooth lines and the early plateauing learning rate, that the model could firstly benefit from learning annealing.
 
 Following this, an evaluation process was launched:
 
@@ -214,10 +222,54 @@ Following this, an evaluation process was launched:
 python experiments/model_main_tf2.py --model_dir=experiments/reference --pipeline_config_path=experiments/reference/pipeline_new.config --checkpoint_dir=experiments/reference
 ```
 
+This wasn't described in the project instructions but after realizing a single blue dot point for the Detection boxes seemed off, I found a similar question on the Udacity Knowledge forms where after each time I hit, "Waiting for next checkpoint", I edited the experiment/reference/checkpoint file's 'model_checkpoint_path' field to increment the ckpt-<x> option (i.e. ckpt-1 through ckpt-6).
+
 This generated the following evaluations:
-@todo: Need to re-do this image
+
+![Reference Detection Boxes Precision Image](images/reference_detection_boxes_precision.PNG "Reference Detection Boxes Precision")
+
+![Reference Detection Boxes Recall Image](images/reference_detectionboxes_recall.PNG "Reference Detection Boxes Precision")
+
+I realized after doing Experiment 1 that you also need to edit the checkpoint file first to do ckpt-1 and increment sequentially or the charts come out wrong.
+
+![Reference Step Time and Loss](images/ref_step_time_and_loss.PNG "Reference Step Time and Loss Metrics")
+
+The step time and loss from the terminal output also indicate that some improvements need to be made to the learning rate and reducing the loss.
 
 ## Improving on Performances
+
+### Experiment 1 (Adjusting the Optimizer)
+
+As found from the first run, the model's pipeline could benefit from learning annealing. After some research, I learned that using the Adam optimizer might help improve the learning rate. Additonally the learning rate seems a little high. So, I reduced it by a factor of 1e-1.
+
+The changes are as follows:
+
+```json
+optimizer {
+    adam_optimizer: {
+      epsilon: 1e-7
+      learning_rate: {
+        cosine_decay_learning_rate {
+          learning_rate_base: 0.004
+          total_steps: 2500
+          warmup_learning_rate: 0.0013333
+          warmup_steps: 200
+        }
+      }
+    }
+    use_moving_average: false
+}
+```
+
+By adjusting this, it made a large difference in the loss and learning rate:
+
+![Experiment 1 Loss Image](images/exp1_optimizer_loss_train.PNG "Experiment 1 Loss")
+
+![Experiment 1 Learning rate and steps per second Image](images/exp1_optimizer_learning_rate_and_sps.PNG "Experiment 1 Learning rate and steps per second")
+
+![Experiment 1 Step Time and Loss](images/exp1_optimizer_step_time_and_loss.PNG "Experiment 1 Step Time and Loss Metrics")
+
+### Experiment 2 (Adding Randomness)
 
 TODO: Will fill this out later
 
