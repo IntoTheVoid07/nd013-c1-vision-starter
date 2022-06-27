@@ -58,17 +58,15 @@ Currently, there's outdated information within this first project. It appears th
 The experiments folder will be organized as follow:
 ```
 experiments/
-    - pretrained_model/
     - exporter_main_v2.py - to create an inference model
     - model_main_tf2.py - to launch training
-    - reference/ - reference training with the unchanged config file
     - experiment0/ - Contains the pipeline for the reference run
     - experiment1/ - Contains the pipeline for adjusting the optimizer run
-    - experiment2/ - create a new folder for each experiment you run
+    - experiment2/ - Contains the pipeline for adjusting the adding more randomness in run
     - label_map.pbtxt
     ...
 ```
-[NOTE] - Since some of the generated output files (i.e. the checkpoints, eval and train tf events, etc.) are quite large, they won't be committed to this repo.
+[NOTE] - Since some of the generated output files (i.e. the pretrained_model, checkpoints, eval and train tf events, etc.) are quite large, they won't be committed to this repo.
 
 ## Exploratory Data Analysis (EDA)
 
@@ -97,13 +95,14 @@ dataset = get_dataset(dataset_glob_path)
 
 def display_images(batch):
     """
-    This function takes a batch from the dataset and displays the image with 
+    This function takes a batch from the dataset and displays the image with
     the associated bounding boxes.
     """
-    rgb_mapping = { 1: 'red',   # Vehicles
-                    2: 'blue',  # Pedestrians
-                    4: 'green'  # Cyclists
-                  }
+    rgb_mapping = {
+        1: 'red',   # Vehicles
+        2: 'blue',  # Pedestrians
+        4: 'green'  # Cyclists
+    }
 
     col, row = 5, 2
     _, ax = plt.subplots(col, row, figsize=(36, 36))
@@ -118,19 +117,20 @@ def display_images(batch):
 
         # Display the batch image
         ax[x, y].imshow(img)
-    
+
         # Normalize the bounding boxes to the current image size
         normalized_bboxes = copy.deepcopy(bboxes)
         normalized_bboxes[:, (0, 2)] = bboxes[:, (0, 2)] * img_height
         normalized_bboxes[:, (1, 3)] = bboxes[:, (1, 3)] * img_width
 
         # Draw the bounding box with the correct coloring based on the class
-        for bb, cl in zip (normalized_bboxes, classes):
+        for bb, cl in zip(normalized_bboxes, classes):
             y1, x1, y2, x2 = bb
             anchor_point = (x1, y1)
-            bb_w =  x2 - x1
+            bb_w = x2 - x1
             bb_h = y2 - y1
-            rec = patches.Rectangle(anchor_point, bb_w, bb_h, facecolor='none', edgecolor=rgb_mapping[cl])
+            rec = patches.Rectangle(anchor_point, bb_w, bb_h, facecolor='none',
+                                    edgecolor=rgb_mapping[cl])
             ax[x, y].add_patch(rec)
         ax[x, y].axis('off')
     plt.tight_layout()
@@ -158,25 +158,28 @@ def get_occurrence_metrics(batch_data):
     Creates a pie chart based on the class distribution
     of the provided batch data
     """
-    num_occur = { 1: 0, # Vehicles
-                  2: 0, # Pedestrians
-                  4: 0  # Cylists
-                 }
+    num_occur = {
+        1: 0,  # Vehicles
+        2: 0,  # Pedestrians
+        4: 0   # Cylists
+    }
     class_labels = ["Vehicles", "Pedestrians", "Cyclists"]
     colors_ref = ['r', 'b', 'g']
     # For each tfrecord, calculate the total number of occurrences
     for batch in batch_data:
         classes = batch['groundtruth_classes'].numpy()
         unique, counts = np.unique(classes, return_counts=True)
-        
+
         for u, c in zip(unique, counts):
             num_occur[u] += c
 
     # Create a pie chart of the class occurrences
     _, ax = plt.subplots()
-    ax.pie(list(num_occur.values()), labels=class_labels, colors=colors_ref, autopct='%1.1f%%', shadow=True)
+    ax.pie(list(num_occur.values()), labels=class_labels, colors=colors_ref,
+           autopct='%1.1f%%', shadow=True)
 
     plt.show()
+
 
 # Draw the occurrence metrics pie chart
 get_occurrence_metrics(dataset.take(86))
@@ -212,7 +215,7 @@ After the training was finished the following images were captured:
 
 ![Experiment 0 Reference Loss Image](images/experiment0_ref_training_model.PNG "Experiment 0 Reference Loss")
 
-![Experiment 0 Learning rate and steps per second Image](images/exp0_ref_training_model_2 "Experiment 0 Learning rate and steps per second")
+![Experiment 0 Learning rate and steps per second Image](images/exp0_ref_training_model_2.PNG "Experiment 0 Learning rate and steps per second")
 
 As seen from the images above, the loss function indicates, from all the non-smooth lines and the early plateauing learning rate, that the model could firstly benefit from learning annealing.
 
@@ -222,7 +225,7 @@ Following this, an evaluation process was launched:
 python experiments/model_main_tf2.py --model_dir=experiments/reference --pipeline_config_path=experiments/reference/pipeline_new.config --checkpoint_dir=experiments/reference
 ```
 
-This wasn't described in the project instructions but after realizing a single blue dot point for the Detection boxes seemed off, I found a similar question on the Udacity Knowledge forms where after each time I hit, "Waiting for next checkpoint", I edited the experiment/reference/checkpoint file's 'model_checkpoint_path' field to increment the ckpt-<x> option (i.e. ckpt-1 through ckpt-6).
+This wasn't described in the project instructions but after realizing a single blue dot point for the Detection boxes seemed off, I found a similar question on the Udacity Knowledge forums where after each time I hit, "Waiting for next checkpoint", I edited the experiment/reference/checkpoint file's 'model_checkpoint_path' field to increment the ckpt-<x> option (i.e. ckpt-1 through ckpt-6).
 
 This generated the following evaluations:
 
